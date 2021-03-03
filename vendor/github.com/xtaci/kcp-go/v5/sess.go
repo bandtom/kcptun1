@@ -80,6 +80,7 @@ type (
 		rd         time.Time // read deadline
 		wd         time.Time // write deadline
 		headerSize int       // the header size additional to a KCP frame
+		payloadOffset int    // ICKP_OVERHEAD + headerSize
 		ackNoDelay bool      // send ack immediately for each incoming packet(testing purpose)
 		writeDelay bool      // delay kcp.flush() for Write() for bulk transfer
 		dup        int       // duplicate udp packets(testing purpose)
@@ -167,8 +168,10 @@ func newUDPSession(conv uint32, dataShards, parityShards int, l *Listener, conn 
 		sess.headerSize += fecHeaderSizePlus2
 	}
 
+	sess.payloadOffset = IKCP_OVERHEAD + sess.headerSize
+
 	sess.kcp = NewKCP(conv, func(buf []byte, size int) {
-		if size >= IKCP_OVERHEAD+sess.headerSize {
+		if size >= sess.payloadOffset {
 			sess.output(buf[:size])
 		}
 	})
@@ -550,13 +553,13 @@ func (s *UDPSession) output(buf []byte) {
 		s.nonce.Fill(buf[:nonceSize])
 		checksum := crc32.ChecksumIEEE(buf[cryptHeaderSize:])
 		binary.LittleEndian.PutUint32(buf[nonceSize:], checksum)
-		s.block.Encrypt(buf, buf)
+		s.block.Encrypt(buf, buf[:s.payloadOffset])
 
 		for k := range ecc {
 			s.nonce.Fill(ecc[k][:nonceSize])
 			checksum := crc32.ChecksumIEEE(ecc[k][cryptHeaderSize:])
 			binary.LittleEndian.PutUint32(ecc[k][nonceSize:], checksum)
-			s.block.Encrypt(ecc[k], ecc[k])
+			s.block.Encrypt(ecc[k], ecc[k][:s.payloadOffset])
 		}
 	}
 
@@ -652,8 +655,8 @@ func (s *UDPSession) notifyWriteError(err error) {
 // packet input stage
 func (s *UDPSession) packetInput(data []byte) {
 	decrypted := false
-	if s.block != nil && len(data) >= cryptHeaderSize {
-		s.block.Decrypt(data, data)
+	if s.block != nil && len(data) >= s.payloadOffset {
+		s.block.Decrypt(data, data[:s.payloadOffset])
 		data = data[nonceSize:]
 		checksum := crc32.ChecksumIEEE(data[crcSize:])
 		if checksum == binary.LittleEndian.Uint32(data) {
@@ -768,6 +771,7 @@ type (
 		block        BlockCrypt     // block encryption
 		dataShards   int            // FEC data shard
 		parityShards int            // FEC parity shard
+		payloadOffset int
 		conn         net.PacketConn // the underlying packet connection
 		ownConn      bool           // true if we created conn internally, false if provided by caller
 
@@ -791,8 +795,8 @@ type (
 // packet input stage
 func (l *Listener) packetInput(data []byte, addr net.Addr) {
 	decrypted := false
-	if l.block != nil && len(data) >= cryptHeaderSize {
-		l.block.Decrypt(data, data)
+	if l.block != nil && len(data) >= l.payloadOffset {
+		l.block.Decrypt(data, data[:l.payloadOffset])
 		data = data[nonceSize:]
 		checksum := crc32.ChecksumIEEE(data[crcSize:])
 		if checksum == binary.LittleEndian.Uint32(data) {
@@ -1018,6 +1022,13 @@ func serveConn(block BlockCrypt, dataShards, parityShards int, conn net.PacketCo
 	l.parityShards = parityShards
 	l.block = block
 	l.chSocketReadError = make(chan struct{})
+	l.payloadOffset = IKCP_OVERHEAD
+	if block != nil {
+		l.payloadOffset += cryptHeaderSize
+	}
+	if dataShards > 0 && parityShards > 0 {
+		l.payloadOffset += fecHeaderSizePlus2
+	}
 	go l.monitor()
 	return l, nil
 }
