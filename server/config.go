@@ -27,6 +27,7 @@ type Config struct {
 	SockBuf      int    `json:"sockbuf"`
 	SmuxBuf      int    `json:"smuxbuf"`
 	StreamBuf    int    `json:"streambuf"`
+	IOCopyBuf    int    `json:"iocopybuf"`
 	SmuxVer      int    `json:"smuxver"`
 	KeepAlive    int    `json:"keepalive"`
 	Log          string `json:"log"`

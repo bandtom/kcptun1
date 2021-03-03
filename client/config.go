@@ -31,6 +31,7 @@ type Config struct {
 	SmuxVer      int    `json:"smuxver"`
 	SmuxBuf      int    `json:"smuxbuf"`
 	StreamBuf    int    `json:"streambuf"`
+	IOCopyBuf    int    `json:"iocopybuf"`
 	KeepAlive    int    `json:"keepalive"`
 	Log          string `json:"log"`
 	SnmpLog      string `json:"snmplog"`

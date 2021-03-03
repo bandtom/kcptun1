@@ -32,7 +32,7 @@ const (
 var VERSION = "SELFBUILD"
 
 // handleClient aggregates connection p1 on mux with 'writeLock'
-func handleClient(session *smux.Session, p1 net.Conn, quiet bool) {
+func handleClient(session *smux.Session, p1 net.Conn, quiet bool, copyBufferSize int) {
 	logln := func(v ...interface{}) {
 		if !quiet {
 			log.Println(v...)
@@ -52,7 +52,7 @@ func handleClient(session *smux.Session, p1 net.Conn, quiet bool) {
 
 	// start tunnel & wait for tunnel termination
 	streamCopy := func(dst io.Writer, src io.ReadCloser) {
-		if _, err := generic.Copy(dst, src); err != nil {
+		if _, err := generic.Copy(dst, src, copyBufferSize); err != nil {
 			// report protocol error
 			if err == smux.ErrInvalidProtocol {
 				log.Println("smux", err, "in:", p1.RemoteAddr(), "out:", fmt.Sprint(p2.RemoteAddr(), "(", p2.ID(), ")"))
@@ -211,6 +211,11 @@ func main() {
 			Usage: "per stream receive buffer in bytes, smux v2+",
 		},
 		cli.IntFlag{
+			Name:  "iocopybuf",
+			Value: 4096,
+			Usage: "io copy buffer in bytes",
+		},
+		cli.IntFlag{
 			Name:  "keepalive",
 			Value: 10, // nat keepalive interval in seconds
 			Usage: "seconds between heartbeats",
@@ -269,6 +274,7 @@ func main() {
 		config.SockBuf = c.Int("sockbuf")
 		config.SmuxBuf = c.Int("smuxbuf")
 		config.StreamBuf = c.Int("streambuf")
+		config.IOCopyBuf = c.Int("iocopybuf")
 		config.SmuxVer = c.Int("smuxver")
 		config.KeepAlive = c.Int("keepalive")
 		config.Log = c.String("log")
@@ -454,7 +460,7 @@ func main() {
 				}
 			}
 
-			go handleClient(muxes[idx].session, p1, config.Quiet)
+			go handleClient(muxes[idx].session, p1, config.Quiet, config.IOCopyBuf)
 			rr++
 		}
 	}

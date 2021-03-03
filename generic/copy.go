@@ -4,10 +4,8 @@ import (
 	"io"
 )
 
-const bufSize = 4096
-
 // Memory optimized io.Copy function specified for this library
-func Copy(dst io.Writer, src io.Reader) (written int64, err error) {
+func Copy(dst io.Writer, src io.Reader, bufSize int) (written int64, err error) {
 	// If the reader has a WriteTo method, use it to do the copy.
 	// Avoids an allocation and a copy.
 	if wt, ok := src.(io.WriterTo); ok {
