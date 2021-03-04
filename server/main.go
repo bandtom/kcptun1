@@ -151,6 +151,10 @@ func main() {
 			Value: "aes",
 			Usage: "aes, aes-128, aes-192, salsa20, blowfish, twofish, cast5, 3des, tea, xtea, xor, sm4, none",
 		},
+		cli.BoolFlag{
+			Name:  "nofullenc",
+			Usage: "only encrypt kcp header",
+		},
 		cli.StringFlag{
 			Name:  "mode",
 			Value: "fast",
@@ -277,6 +281,20 @@ func main() {
 			Value: "", // when the value is not empty, the config path must exists
 			Usage: "config from json file, which will override the command from shell",
 		},
+		cli.UintFlag{
+			Name: "irtobackoff",
+			Value: 32,
+			Usage: "initial transmit RTO = RTO + (RTO >> irtobackoff), RTO is uint32",
+		},
+		cli.UintFlag{
+			Name: "irtobthresh",
+			Value: 32,
+			Usage: "irto no back off if send buffer length <= irtobthresh",
+		},
+		cli.BoolFlag{
+			Name: "noearlyretran",
+			Usage: "disable early retransmit",
+		},
 	}
 	myApp.Action = func(c *cli.Context) error {
 		config := Config{}
@@ -284,6 +302,7 @@ func main() {
 		config.Target = c.String("target")
 		config.Key = c.String("key")
 		config.Crypt = c.String("crypt")
+		config.NoFullEncrypt = c.Bool("nofullenc")
 		config.Mode = c.String("mode")
 		config.MTU = c.Int("mtu")
 		config.SndWnd = c.Int("sndwnd")
@@ -309,6 +328,9 @@ func main() {
 		config.Pprof = c.Bool("pprof")
 		config.Quiet = c.Bool("quiet")
 		config.TCP = c.Bool("tcp")
+		config.IRTOBackOff = uint8(c.Uint("irtobackoff"))
+		config.IRTOBThresh = c.Int("irtobthresh")
+		config.NoEarRetran = c.Bool("noearlyretran")
 
 		if c.String("c") != "" {
 			//Now only support json config file
@@ -340,6 +362,7 @@ func main() {
 		log.Println("listening on:", config.Listen)
 		log.Println("target:", config.Target)
 		log.Println("encryption:", config.Crypt)
+		log.Println("no full encryption:", config.NoFullEncrypt)
 		log.Println("nodelay parameters:", config.NoDelay, config.Interval, config.Resend, config.NoCongestion)
 		log.Println("sndwnd:", config.SndWnd, "rcvwnd:", config.RcvWnd)
 		log.Println("compression:", !config.NoComp)
@@ -438,7 +461,11 @@ func main() {
 
 		if config.TCP { // tcp dual stack
 			if conn, err := tcpraw.Listen("tcp", config.Listen); err == nil {
-				lis, err := kcp.ServeConn(block, config.DataShard, config.ParityShard, conn)
+				lis, err := kcp.ServeConn(block, config.DataShard, config.ParityShard, conn, !config.NoFullEncrypt, kcp.KCPOptions{
+					InitialTXRTOBackoff: config.IRTOBackOff,
+					InitialTXRTOBackoffThresh: config.IRTOBThresh,
+					EarlyRetransmit: !config.NoEarRetran,
+				})
 				checkError(err)
 				wg.Add(1)
 				go loop(lis)
@@ -448,7 +475,11 @@ func main() {
 		}
 
 		// udp stack
-		lis, err := kcp.ListenWithOptions(config.Listen, block, config.DataShard, config.ParityShard)
+		lis, err := kcp.ListenWithOptions(config.Listen, block, config.DataShard, config.ParityShard, !config.NoFullEncrypt, kcp.KCPOptions{
+			InitialTXRTOBackoff: config.IRTOBackOff,
+			InitialTXRTOBackoffThresh: config.IRTOBThresh,
+			EarlyRetransmit: !config.NoEarRetran,
+		})
 		checkError(err)
 		wg.Add(1)
 		go loop(lis)

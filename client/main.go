@@ -111,6 +111,10 @@ func main() {
 			Value: "aes",
 			Usage: "aes, aes-128, aes-192, salsa20, blowfish, twofish, cast5, 3des, tea, xtea, xor, sm4, none",
 		},
+		cli.BoolFlag{
+			Name:  "nofullenc",
+			Usage: "only encrypt kcp header",
+		},
 		cli.StringFlag{
 			Name:  "mode",
 			Value: "fast",
@@ -248,6 +252,20 @@ func main() {
 			Value: "", // when the value is not empty, the config path must exists
 			Usage: "config from json file, which will override the command from shell",
 		},
+		cli.UintFlag{
+			Name:  "irtobackoff",
+			Value: 32,
+			Usage: "initial transmit RTO = RTO + (RTO >> irtobackoff), RTO is uint32",
+		},
+		cli.UintFlag{
+			Name:  "irtobthresh",
+			Value: 32,
+			Usage: "irto no back off if send buffer length <= irtobthresh",
+		},
+		cli.BoolFlag{
+			Name:  "noearlyretran",
+			Usage: "disable early retransmit",
+		},
 	}
 	myApp.Action = func(c *cli.Context) error {
 		config := Config{}
@@ -255,6 +273,7 @@ func main() {
 		config.RemoteAddr = c.String("remoteaddr")
 		config.Key = c.String("key")
 		config.Crypt = c.String("crypt")
+		config.NoFullEncrypt = c.Bool("nofullenc")
 		config.Mode = c.String("mode")
 		config.Conn = c.Int("conn")
 		config.AutoExpire = c.Int("autoexpire")
@@ -282,6 +301,9 @@ func main() {
 		config.SnmpPeriod = c.Int("snmpperiod")
 		config.Quiet = c.Bool("quiet")
 		config.TCP = c.Bool("tcp")
+		config.IRTOBackOff = uint8(c.Uint("irtobackoff"))
+		config.IRTOBThresh = c.Int("irtobthresh")
+		config.NoEarRetran = c.Bool("noearlyretran")
 
 		if c.String("c") != "" {
 			err := parseJSONConfig(&config, c.String("c"))
@@ -316,6 +338,7 @@ func main() {
 		log.Println("smux version:", config.SmuxVer)
 		log.Println("listening on:", listener.Addr())
 		log.Println("encryption:", config.Crypt)
+		log.Println("no full encryption:", config.NoFullEncrypt)
 		log.Println("nodelay parameters:", config.NoDelay, config.Interval, config.Resend, config.NoCongestion)
 		log.Println("remote address:", config.RemoteAddr)
 		log.Println("sndwnd:", config.SndWnd, "rcvwnd:", config.RcvWnd)
