@@ -195,9 +195,14 @@ func main() {
 			Hidden: true,
 		},
 		cli.IntFlag{
-			Name:  "sockbuf",
+			Name:  "sndbuf",
+			Value: 212992, // socket send buffer size in bytes
+			Usage: "per-socket send buffer in bytes, DO NOT INCREASE THIS VALUE UNLESS YOU ARE SURE THIS IS THE BOTTLENECK",
+		},
+		cli.IntFlag{
+			Name:  "rcvbuf,sockbuf",
 			Value: 4194304, // socket buffer size in bytes
-			Usage: "per-socket buffer in bytes",
+			Usage: "per-socket receive buffer in bytes",
 		},
 		cli.IntFlag{
 			Name:  "smuxver",
@@ -290,7 +295,8 @@ func main() {
 		config.Interval = c.Int("interval")
 		config.Resend = c.Int("resend")
 		config.NoCongestion = c.Int("nc")
-		config.SockBuf = c.Int("sockbuf")
+		config.SndBuf = c.Int("sndbuf")
+		config.RcvBuf = c.Int("rcvbuf")
 		config.SmuxBuf = c.Int("smuxbuf")
 		config.StreamBuf = c.Int("streambuf")
 		config.IOCopyBuf = c.Int("iocopybuf")
@@ -347,7 +353,8 @@ func main() {
 		log.Println("datashard:", config.DataShard, "parityshard:", config.ParityShard)
 		log.Println("acknodelay:", config.AckNodelay)
 		log.Println("dscp:", config.DSCP)
-		log.Println("sockbuf:", config.SockBuf)
+		log.Println("sndbuf:", config.SndBuf)
+		log.Println("rcvbuf:", config.RcvBuf)
 		log.Println("smuxbuf:", config.SmuxBuf)
 		log.Println("streambuf:", config.StreamBuf)
 		log.Println("keepalive:", config.KeepAlive)
@@ -413,10 +420,10 @@ func main() {
 			if err := kcpconn.SetDSCP(config.DSCP); err != nil {
 				log.Println("SetDSCP:", err)
 			}
-			if err := kcpconn.SetReadBuffer(config.SockBuf); err != nil {
+			if err := kcpconn.SetReadBuffer(config.RcvBuf); err != nil {
 				log.Println("SetReadBuffer:", err)
 			}
-			if err := kcpconn.SetWriteBuffer(config.SockBuf); err != nil {
+			if err := kcpconn.SetWriteBuffer(config.SndBuf); err != nil {
 				log.Println("SetWriteBuffer:", err)
 			}
 			log.Println("smux version:", config.SmuxVer, "on connection:", kcpconn.LocalAddr(), "->", kcpconn.RemoteAddr())

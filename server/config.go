@@ -25,7 +25,8 @@ type Config struct {
 	Interval      int    `json:"interval"`
 	Resend        int    `json:"resend"`
 	NoCongestion  int    `json:"nc"`
-	SockBuf       int    `json:"sockbuf"`
+	SndBuf        int    `json:"sndbuf"`
+	RcvBuf        int    `json:"rcvbuf"`
 	SmuxBuf       int    `json:"smuxbuf"`
 	StreamBuf     int    `json:"streambuf"`
 	IOCopyBuf     int    `json:"iocopybuf"`
