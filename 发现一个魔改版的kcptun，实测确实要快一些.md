@@ -4,7 +4,14 @@
 
 ### **[PHCSJC]()** commented [on 5 Mar](#issue-1160342588) • edited 
 
-原作者在这：https://github.com/yzslab/kcptun curl测试，电信宽带下要快10%左右，联通宽带要快25%左右 youtube在15%左右组合是ss+kcptun+udp2raw 参数是： ./server_linux_amd64 -l 127.0.0.1:222-t 127.0.0.1:333 --mtu 1200 --sndwnd 2200 --smuxver 1 --nocomp --crypt none --key aaa -mode manual -nodelay 1 -interval 11 -resend 2 -nc 1 -datashard 20 -parityshard 10 --iocopybuf 65535 --irtobackoff 1 --irtobthresh 256 --noearlyretran./client_linux_amd64 -r 127.0.0.1:222-l 127.0.0.1:333--mtu 1200 --rcvwnd 2200 --smuxver 1 --nocomp --crypt none --key aaa -mode manual -nodelay 1 -interval 11 -resend 2 -nc 1 -datashard 20 -parityshard 10 --iocopybuf 8192 --irtobackoff 1 --irtobthresh 256 --noearlyretran供大佬参考，也许还有优化的空间
+原作者在这：https://github.com/yzslab/kcptun curl测试，电信宽带下要快10%左右，联通宽带要快25%左右 youtube在15%左右组合是ss+kcptun+udp2raw 参数是： 
+
+./server_linux_amd64 -l 127.0.0.1:222-t 127.0.0.1:333 --mtu 1200 --sndwnd 2200 --smuxver 1 --nocomp --crypt none --key aaa -mode manual -nodelay 1 -interval 11 -resend 2 -nc 1 -datashard 20 -parityshard 10 --iocopybuf 65535 --irtobackoff 1 --irtobthresh 256 --noearlyretran
+
+
+./client_linux_amd64 -r 127.0.0.1:222-l 127.0.0.1:333--mtu 1200 --rcvwnd 2200 --smuxver 1 --nocomp --crypt none --key aaa -mode manual -nodelay 1 -interval 11 -resend 2 -nc 1 -datashard 20 -parityshard 10 --iocopybuf 8192 --irtobackoff 1 --irtobthresh 256 --noearlyretran
+
+供大佬参考，也许还有优化的空间
 
 
 
@@ -32,7 +39,8 @@
 
 ### **[PHCSJC]()** commented [on 15 Mar](#issuecomment-1067740418)
 
-我也来试试，udp2raw的参数方便提供一下吗--cipher-mode xor --auth-mode simple --seq-mode 3 --fix-gro
+我也来试试，udp2raw的参数方便提供一下吗  
+--cipher-mode xor --auth-mode simple --seq-mode 3 --fix-gro
 
 
 
